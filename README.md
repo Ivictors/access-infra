@@ -32,3 +32,5 @@ Para verificar o fluxo completo, configure no processo `ACCESS_GATEWAY_ADMIN_TOK
 Este Compose é para desenvolvimento local. Implantação de produção requer imagens versionadas, HTTPS, gestão de segredos, backup, restauração e procedimento de reversão. Essas tarefas estão registradas nas issues deste repositório.
 
 Uma combinação de imagens por digest está em `releases/current.env`; consulte [RELEASE.md](RELEASE.md) para validá-la e promovê-la. O manifesto de release ainda vincula as portas apenas a `127.0.0.1` e não configura TLS público.
+
+Os critérios para uma futura implantação estão em [PRODUCTION.md](PRODUCTION.md).
