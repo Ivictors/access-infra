@@ -1,0 +1,58 @@
+name: Integration
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: access-infra
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/acess-gateway
+          path: backend
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/access-web
+          path: frontend
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/device-simulator
+          path: simulator
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Prepare ephemeral test configuration
+        run: |
+          export ACCESS_WEB_TEST_PASSWORD="$(openssl rand -hex 16)"
+          export ACCESS_GATEWAY_ADMIN_TOKEN="$(openssl rand -hex 32)"
+          POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+          WEB_HASH="$(docker run --rm -e ACCESS_WEB_TEST_PASSWORD php:8.4-cli php -r 'echo password_hash(getenv("ACCESS_WEB_TEST_PASSWORD"), PASSWORD_DEFAULT);')"
+          printf "POSTGRES_PASSWORD=%s\nACCESS_GATEWAY_ADMIN_TOKEN=%s\nACCESS_WEB_PASSWORD_HASH='%s'\n" "$POSTGRES_PASSWORD" "$ACCESS_GATEWAY_ADMIN_TOKEN" "$WEB_HASH" > access-infra/.env
+          echo "ACCESS_GATEWAY_ADMIN_TOKEN=$ACCESS_GATEWAY_ADMIN_TOKEN" >> "$GITHUB_ENV"
+          echo "ACCESS_WEB_TEST_PASSWORD=$ACCESS_WEB_TEST_PASSWORD" >> "$GITHUB_ENV"
+      - name: Start stack
+        working-directory: access-infra
+        env:
+          BACKEND_CONTEXT: ../backend
+          WEB_CONTEXT: ../frontend
+        run: docker compose up --build -d
+      - name: Check the end-to-end flow
+        working-directory: access-infra
+        env:
+          SIMULATOR_PATH: ../simulator/main.py
+        run: python scripts/check-stack.py
+      - name: Stop stack
+        if: always()
+        working-directory: access-infra
+        run: docker compose down -v
