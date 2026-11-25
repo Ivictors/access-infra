@@ -1,0 +1,57 @@
+name: access-stack
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: access_gateway
+      POSTGRES_USER: access_gateway
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U access_gateway -d access_gateway"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - data
+
+  gateway:
+    build:
+      context: ${BACKEND_CONTEXT:-../backend/acess-gateway}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/access_gateway
+      SPRING_DATASOURCE_USERNAME: access_gateway
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      ACCESS_GATEWAY_ADMIN_TOKEN: ${ACCESS_GATEWAY_ADMIN_TOKEN:?Set ACCESS_GATEWAY_ADMIN_TOKEN in .env}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - data
+      - app
+
+  web:
+    build:
+      context: ${WEB_CONTEXT:-../frontend}
+    environment:
+      ACCESS_GATEWAY_BASE_URL: http://gateway:8080
+      ACCESS_GATEWAY_ADMIN_TOKEN: ${ACCESS_GATEWAY_ADMIN_TOKEN:?Set ACCESS_GATEWAY_ADMIN_TOKEN in .env}
+      ACCESS_WEB_PASSWORD_HASH: ${ACCESS_WEB_PASSWORD_HASH:?Set ACCESS_WEB_PASSWORD_HASH in .env}
+    ports:
+      - "127.0.0.1:8000:80"
+    depends_on:
+      - gateway
+    networks:
+      - app
+
+volumes:
+  postgres_data:
+
+networks:
+  app:
+  data:
+    internal: true
