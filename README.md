@@ -34,3 +34,19 @@ Este Compose é para desenvolvimento local. Implantação de produção requer i
 Uma combinação de imagens por digest está em `releases/current.env`; consulte [RELEASE.md](RELEASE.md) para validá-la e promovê-la. O manifesto de release ainda vincula as portas apenas a `127.0.0.1` e não configura TLS público.
 
 Os critérios para uma futura implantação estão em [PRODUCTION.md](PRODUCTION.md).
+## Padrão de configuração local
+
+Este repositório existe para integrar e validar o ambiente do Access Gateway.
+Sua arquitetura e seus componentes estão descritos nas seções anteriores e
+seguem o princípio de separar integração, execução e verificação da stack.
+
+### Clonar e configurar
+
+```powershell
+git clone https://github.com/Ivictors/access-infra.git
+cd access-infra
+Copy-Item .env.example .env
+```
+
+Preencha o `.env` somente com valores locais. Nunca publique senhas, tokens,
+hashes ou chaves no README, no histórico Git ou em imagens de contêiner.
