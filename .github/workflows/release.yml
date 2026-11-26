@@ -56,7 +56,7 @@ jobs:
         working-directory: access-infra
         env:
           SIMULATOR_PATH: ../simulator/main.py
-        run: python scripts/check-stack.py
+        run: python scripts/check-stack.py --legacy
       - name: Stop stack
         if: always()
         working-directory: access-infra

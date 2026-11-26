@@ -1,6 +1,6 @@
 # Preparação para produção
 
-O manifesto `compose.release.yaml` reproduz uma combinação testada de imagens, mas vincula a web e a API a `127.0.0.1` e não configura uma entrada pública. Nenhum ambiente de produção está configurado neste repositório.
+Este projeto permanece de estudo, sem implantação de produção planejada. O manifesto `compose.release.yaml` reproduz uma combinação testada de imagens, mas vincula a web e a API a `127.0.0.1` e não configura uma entrada pública. Os critérios abaixo ficam como referência histórica e não foram concluídos.
 
 ## Decisões necessárias
 
@@ -17,4 +17,4 @@ O manifesto `compose.release.yaml` reproduz uma combinação testada de imagens,
 4. Promover somente digests que passaram pela CI de release. Registrar os digests em uso e observar saúde e logs após a troca.
 5. Testar a reversão da web e do gateway com os digests anteriores. Para uma migração incompatível, usar o plano de banco definido antes da implantação; trocar a imagem não desfaz o esquema.
 
-As decisões e a execução desses critérios estão acompanhadas na [issue #3](https://github.com/Ivictors/access-infra/issues/3). Até então, o Compose de release serve para validação local e não deve ser tratado como implantação pronta.
+O histórico da meta de produção está na [issue #3](https://github.com/Ivictors/access-infra/issues/3). O Compose de release serve apenas para validação local e não deve ser tratado como implantação pronta.
