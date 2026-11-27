@@ -150,7 +150,10 @@ def main():
     web = login("access-admin", password, cookies)
     admin_token, id_token = user_access_token(secret, cookies)
     request_json(GATEWAY + "/devices/" + str(uuid.uuid4()), "invalid-token", expected=401)
-    request_json(GATEWAY + "/devices/" + str(uuid.uuid4()), admin_token[:-1] + ("A" if admin_token[-1] != "A" else "B"), expected=401)
+    token_parts = admin_token.split(".")
+    signature = token_parts[2]
+    token_parts[2] = ("A" if signature[0] != "A" else "B") + signature[1:]
+    request_json(GATEWAY + "/devices/" + str(uuid.uuid4()), ".".join(token_parts), expected=401)
     request_json(GATEWAY + "/devices/" + str(uuid.uuid4()), id_token, expected=401)
     serial = "OIDC-" + uuid.uuid4().hex[:16].upper()
     registration = request_json(GATEWAY + "/devices", admin_token, "POST",
