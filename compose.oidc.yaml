@@ -1,0 +1,28 @@
+services:
+  gateway:
+    environment:
+      ACCESS_SECURITY_OIDC_ENABLED: "true"
+      ACCESS_SECURITY_OIDC_ISSUER: http://localhost:8180/realms/access-lab
+      ACCESS_SECURITY_OIDC_JWK_SET_URI: http://keycloak:8080/realms/access-lab/protocol/openid-connect/certs
+      ACCESS_SECURITY_OIDC_AUDIENCE: access-gateway
+    networks:
+      - app
+      - data
+      - identity_app
+
+  web:
+    environment:
+      ACCESS_WEB_OIDC_ENABLED: "true"
+      ACCESS_OIDC_PUBLIC_BASE_URL: http://localhost:8180/realms/access-lab
+      ACCESS_OIDC_INTERNAL_BASE_URL: http://keycloak:8080/realms/access-lab
+      ACCESS_OIDC_CLIENT_ID: access-web
+      ACCESS_OIDC_CLIENT_SECRET: ${ACCESS_WEB_OIDC_CLIENT_SECRET:?Set ACCESS_WEB_OIDC_CLIENT_SECRET in Keycloak .env}
+      ACCESS_OIDC_REDIRECT_URI: http://localhost:8000/?oidc_callback=1
+    networks:
+      - app
+      - identity_app
+
+networks:
+  identity_app:
+    external: true
+    name: access-keycloak_identity_app
