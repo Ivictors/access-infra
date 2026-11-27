@@ -54,6 +54,10 @@ jobs:
           ADMIN_PASSWORD="$(openssl rand -hex 32)"
           CLIENT_SECRET="$(openssl rand -hex 32)"
           USER_PASSWORD="$(openssl rand -hex 32)"
+          echo "::add-mask::$DB_PASSWORD"
+          echo "::add-mask::$ADMIN_PASSWORD"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$USER_PASSWORD"
           printf 'KEYCLOAK_DB_PASSWORD=%s\nKEYCLOAK_ADMIN_PASSWORD=%s\nACCESS_WEB_OIDC_CLIENT_SECRET=%s\nACCESS_LAB_USER_PASSWORD=%s\n' \
             "$DB_PASSWORD" "$ADMIN_PASSWORD" "$CLIENT_SECRET" "$USER_PASSWORD" > access-keycloak/.env
           printf 'POSTGRES_PASSWORD=%s\nACCESS_GATEWAY_ADMIN_TOKEN=%s\nACCESS_WEB_PASSWORD_HASH=%s\n' \

@@ -3,6 +3,8 @@
 
 import html.parser
 import http.cookiejar
+import base64
+import hashlib
 import json
 import os
 import re
@@ -111,9 +113,12 @@ def user_access_token(client_secret, cookies):
         if cookie.domain == "localhost.local":
             cookie.secure = False
     state = uuid.uuid4().hex
+    verifier = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
     url = KEYCLOAK + "/protocol/openid-connect/auth?" + urlencode({
         "client_id": "access-web", "response_type": "code", "scope": "openid",
         "redirect_uri": REDIRECT, "state": state, "nonce": uuid.uuid4().hex,
+        "code_challenge": challenge, "code_challenge_method": "S256",
     })
     opener = build_opener(HTTPCookieProcessor(cookies), CaptureCallback())
     try:
@@ -128,6 +133,7 @@ def user_access_token(client_secret, cookies):
     body = urlencode({
         "grant_type": "authorization_code", "code": code,
         "redirect_uri": REDIRECT, "client_id": "access-web", "client_secret": client_secret,
+        "code_verifier": verifier,
     }).encode()
     with urlopen(Request(KEYCLOAK + "/protocol/openid-connect/token", data=body), timeout=30) as response:
         tokens = json.load(response)
