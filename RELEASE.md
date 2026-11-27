@@ -4,6 +4,8 @@
 
 O modo padrão do verificador exige cadastro, atribuição e revogação de `credentialRef`. A CI de release usa temporariamente `--legacy` para os digests atuais, que antecedem esse contrato. Depois de promover imagens compatíveis, retire `--legacy` do workflow e execute o modo padrão; o resultado de 2026-11-25 não valida os novos cenários.
 
+O manifesto atual também antecede a integração OIDC. O workflow `OIDC integration` verifica os checkouts atuais com Keycloak, mas não valida os digests de `releases/current.env`. Para promover OIDC, publique primeiro as imagens atualizadas do gateway e da web, fixe seus novos digests e execute o fluxo OIDC sobre essa combinação antes de alterar o manifesto de release. O Keycloak mantém versão, banco e ciclo de vida próprios.
+
 ## Validar uma candidata
 
 1. Espere a CI e a publicação de cada repositório terminarem. Obtenha o digest publicado pelo workflow ou com `docker buildx imagetools inspect <imagem>:<tag>`.

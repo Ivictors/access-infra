@@ -1,5 +1,13 @@
 # Access Stack
 
+## Login integrado com Keycloak
+
+O [plano de integração](KEYCLOAK_INTEGRATION_PLAN.md) registra a arquitetura, a ordem das mudanças e os limites desta etapa.
+
+O modo OIDC é opcional e usa o [repositório access-keycloak](https://github.com/Ivictors/access-keycloak). Inicie o Keycloak primeiro. Depois, nesta pasta, execute `docker compose --env-file ../access-keycloak/.env --env-file .env -f compose.yaml -f compose.oidc.yaml up --build -d`. O arquivo de ambiente do Keycloak fornece o segredo do cliente `access-web`; o `.env` deste repositório continua fornecendo as credenciais do PostgreSQL do gateway. Acesse a web em `http://localhost:8000`, entre com o usuário `access-admin` e a senha `ACCESS_LAB_USER_PASSWORD` do `.env` do Keycloak. Para verificar o fluxo completo, carregue `ACCESS_LAB_USER_PASSWORD` e `ACCESS_WEB_OIDC_CLIENT_SECRET` no ambiente do processo e execute `python scripts/check-oidc.py`; ele grava um dispositivo, uma referência e um evento no banco local.
+
+Neste modo, a web redireciona o navegador para o Keycloak, troca o código OIDC no canal interno e envia o token do usuário ao gateway. O gateway valida o token para rotas administrativas. Dispositivos continuam usando suas chaves individuais. O logout da web encerra a sessão PHP e a sessão SSO do Keycloak. O modo sem `compose.oidc.yaml` mantém o login anterior para compatibilidade durante a migração.
+
 Integração local dos repositórios [acess-gateway](https://github.com/Ivictors/acess-gateway), [access-web](https://github.com/Ivictors/access-web) e [device-simulator](https://github.com/Ivictors/device-simulator). O PostgreSQL pertence ao gateway; a web usa somente a API HTTP.
 
 ## Comunicação entre os projetos
@@ -9,9 +17,9 @@ Navegador --HTTP/sessão PHP--> access-web --HTTP/Bearer administrativo--> acess
 device-simulator -----------HTTP/Bearer do dispositivo-----------> acess-gateway
 ```
 
-O navegador acessa somente a web PHP. A web consulta o gateway com o token administrativo configurado no servidor. O simulador envia eventos com a chave do dispositivo e usa o token administrativo apenas para consultar o histórico nos testes. O gateway autentica as chamadas, aplica as regras de acesso e é o único serviço que acessa seu banco. No Compose, web e gateway compartilham a rede `app`; gateway e PostgreSQL compartilham a rede interna `data`.
+O navegador acessa a web PHP. No modo original, a web consulta o gateway com o token administrativo configurado no servidor. No modo OIDC, o navegador também visita o Keycloak para fazer login e a web repassa o token de acesso do usuário ao gateway. O simulador envia eventos com a chave do dispositivo e usa o token administrativo apenas para consultar o histórico nos testes do modo original. O gateway autentica as chamadas, aplica as regras de acesso e é o único serviço que acessa seu banco. No Compose, web e gateway compartilham a rede `app`; gateway e PostgreSQL compartilham a rede interna `data`.
 
-O laboratório [access-keycloak](https://github.com/Ivictors/access-keycloak) vive em um repositório próprio, com Compose e banco próprios. Ele ainda não participa dessas chamadas nem substitui o login atual.
+O laboratório [access-keycloak](https://github.com/Ivictors/access-keycloak) vive em um repositório próprio, com Compose e banco próprios. A rede externa `access-keycloak_identity_app` conecta web e gateway ao Keycloak somente quando o arquivo `compose.oidc.yaml` é aplicado.
 
 ## Checkouts locais
 
@@ -46,6 +54,8 @@ O modo `python scripts/check-stack.py --legacy` existe temporariamente para vali
 Este projeto é usado para estudo e testes locais; não há implantação de produção planejada. Uma implantação real exigiria HTTPS, gestão de segredos, backup, restauração e procedimento de reversão. O encerramento das issues de produção registra uma mudança de objetivo, não o cumprimento desses requisitos.
 
 Uma combinação de imagens por digest está em `releases/current.env`; consulte [RELEASE.md](RELEASE.md) para validá-la e promovê-la. O manifesto de release ainda vincula as portas apenas a `127.0.0.1` e não configura TLS público.
+
+`releases/current.env` ainda aponta para imagens anteriores ao OIDC. O modo OIDC foi validado com imagens construídas dos checkouts locais e por seu workflow de integração; a combinação imutável de release só deve ser atualizada após a publicação dos novos digests e a execução do teste OIDC com essas imagens.
 
 Os critérios para uma futura implantação estão em [PRODUCTION.md](PRODUCTION.md).
 ## Padrão de configuração local

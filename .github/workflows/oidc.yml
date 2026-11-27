@@ -1,0 +1,82 @@
+name: OIDC integration
+
+on:
+  pull_request:
+    paths:
+      - compose.oidc.yaml
+      - scripts/check-oidc.py
+      - .github/workflows/oidc.yml
+  push:
+    branches: [main]
+    paths:
+      - compose.oidc.yaml
+      - scripts/check-oidc.py
+      - .github/workflows/oidc.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oidc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: access-infra
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/access-keycloak
+          ref: feat/keycloak-oidc-integration
+          path: access-keycloak
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/acess-gateway
+          ref: feat/keycloak-oidc-integration
+          path: backend
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/access-web
+          ref: feat/keycloak-oidc-integration
+          path: frontend
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Ivictors/device-simulator
+          ref: feat/simulator-oidc-compat
+          path: simulator
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Prepare ephemeral credentials
+        run: |
+          DB_PASSWORD="$(openssl rand -hex 32)"
+          ADMIN_PASSWORD="$(openssl rand -hex 32)"
+          CLIENT_SECRET="$(openssl rand -hex 32)"
+          USER_PASSWORD="$(openssl rand -hex 32)"
+          printf 'KEYCLOAK_DB_PASSWORD=%s\nKEYCLOAK_ADMIN_PASSWORD=%s\nACCESS_WEB_OIDC_CLIENT_SECRET=%s\nACCESS_LAB_USER_PASSWORD=%s\n' \
+            "$DB_PASSWORD" "$ADMIN_PASSWORD" "$CLIENT_SECRET" "$USER_PASSWORD" > access-keycloak/.env
+          printf 'POSTGRES_PASSWORD=%s\nACCESS_GATEWAY_ADMIN_TOKEN=%s\nACCESS_WEB_PASSWORD_HASH=%s\n' \
+            "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" 'unused-in-oidc-mode' > access-infra/.env
+          echo "ACCESS_WEB_OIDC_CLIENT_SECRET=$CLIENT_SECRET" >> "$GITHUB_ENV"
+          echo "ACCESS_LAB_USER_PASSWORD=$USER_PASSWORD" >> "$GITHUB_ENV"
+      - name: Start Keycloak
+        working-directory: access-keycloak
+        run: docker compose up -d
+      - name: Start stack in OIDC mode
+        working-directory: access-infra
+        env:
+          BACKEND_CONTEXT: ../backend
+          WEB_CONTEXT: ../frontend
+        run: docker compose --env-file .env --env-file ../access-keycloak/.env -f compose.yaml -f compose.oidc.yaml up --build -d
+      - name: Check end-to-end OIDC flow
+        working-directory: access-infra
+        run: python scripts/check-oidc.py
+      - name: Stop stack
+        if: always()
+        working-directory: access-infra
+        run: docker compose --env-file .env --env-file ../access-keycloak/.env -f compose.yaml -f compose.oidc.yaml down -v
+      - name: Stop Keycloak
+        if: always()
+        working-directory: access-keycloak
+        run: docker compose down -v
